@@ -307,6 +307,14 @@ document.addEventListener('DOMContentLoaded', () => {
   renderCatalog();
   renderCart();
   
+  // Check if admin parameter exists in URL
+  const params = new URLSearchParams(window.location.search);
+  const isAdmin = params.get('admin') === 'true';
+  
+  if (isAdmin) {
+    $('#toggleAdminBtn').style.display = 'inline-block';
+  }
+  
   let adminInitialized = false;
   
   $('#toggleAdminBtn').addEventListener('click', () => {
