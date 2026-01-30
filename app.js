@@ -90,14 +90,19 @@ function renderCatalog() {
 
 function addToCart(item, type, qty) {
   if (type === 'home' && qty < 1) qty = 1;
-  cart.push({
-    id: item.id,
-    name: item.name,
-    type,
-    qty,
-    unit: type === 'home' ? 'kg' : 'jar',
-    unitPrice: type === 'home' ? item.pricePerKg : item.price
-  });
+  const existing = cart.find(c => c.id === item.id && c.type === type);
+  if (existing) {
+    existing.qty += qty;
+  } else {
+    cart.push({
+      id: item.id,
+      name: item.name,
+      type,
+      qty,
+      unit: type === 'home' ? 'kg' : 'jar',
+      unitPrice: type === 'home' ? item.pricePerKg : item.price
+    });
+  }
   renderCart();
 }
 
@@ -115,7 +120,34 @@ function renderCart() {
   cart.forEach((c, idx) => {
     const row = document.createElement('div');
     row.className = 'd-flex justify-content-between align-items-center mb-2';
-    row.innerHTML = '<div><small class="text-muted">' + c.unit.toUpperCase() + '</small><div>' + c.name + ' — ' + c.qty + ' ' + c.unit + '</div></div>';
+    const left = document.createElement('div');
+    left.innerHTML = '<div><small class="text-muted">' + c.unit.toUpperCase() + '</small><div>' + c.name + '</div></div>';
+    const qtyControls = document.createElement('div');
+    qtyControls.className = 'd-flex align-items-center';
+    const minusBtn = document.createElement('button');
+    minusBtn.className = 'btn btn-outline-secondary btn-sm me-1';
+    minusBtn.textContent = '-';
+    minusBtn.onclick = () => {
+      if (c.qty > (c.type === 'home' ? 0.1 : 1)) {
+        c.qty -= (c.type === 'home' ? 0.1 : 1);
+        renderCart();
+      }
+    };
+    const qtyDisplay = document.createElement('span');
+    qtyDisplay.className = 'me-1';
+    qtyDisplay.textContent = c.qty + ' ' + c.unit;
+    const plusBtn = document.createElement('button');
+    plusBtn.className = 'btn btn-outline-secondary btn-sm me-2';
+    plusBtn.textContent = '+';
+    plusBtn.onclick = () => {
+      c.qty += (c.type === 'home' ? 0.1 : 1);
+      renderCart();
+    };
+    qtyControls.appendChild(minusBtn);
+    qtyControls.appendChild(qtyDisplay);
+    qtyControls.appendChild(plusBtn);
+    left.appendChild(qtyControls);
+    row.appendChild(left);
     const right = document.createElement('div');
     right.innerHTML = '₹' + (c.qty * c.unitPrice).toFixed(0) + ' <button class="btn btn-link btn-sm text-danger">Remove</button>';
     right.querySelector('button').onclick = () => {
@@ -127,7 +159,8 @@ function renderCart() {
     total += c.qty * c.unitPrice;
   });
   $('#cartTotal').textContent = '₹' + total.toFixed(0);
-  $('#cartCount').textContent = String(cart.length);
+  const totalQty = cart.reduce((sum, c) => sum + c.qty, 0);
+  $('#cartCount').textContent = String(totalQty.toFixed(1));
   $('#sendWhatsApp').disabled = false;
 }
 
