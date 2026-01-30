@@ -197,19 +197,19 @@ function buildWhatsAppText(payload) {
 }
 
 function buildReceiptHTML(payload) {
-  let html = '<p><strong>Order Receipt</strong></p>';
-  html += '<p>Order from: ' + (payload.customer.name || 'Customer') + '</p>';
+  let html = '<p><strong>Payment Receipt - Sridevi Home Foods</strong></p>';
+  html += '<p>Customer: ' + (payload.customer.name || 'Customer') + '</p>';
   if (payload.customer.phone) html += '<p>Phone: ' + payload.customer.phone + '</p>';
   if (payload.customer.address) html += '<p>Address: ' + payload.customer.address + '</p>';
   html += '<p>Items:</p><ul>';
   payload.items.forEach(it => html += '<li>' + it.name + ' — ' + it.qty + ' ' + it.unit + ' — ₹' + it.lineTotal.toFixed(0) + '</li>');
   html += '</ul>';
-  html += '<p><strong>Total: ₹' + payload.total.toFixed(0) + '</strong></p>';
+  html += '<p><strong>Total Paid: ₹' + payload.total.toFixed(0) + '</strong></p>';
   html += '<p>Payment Method: ' + (payload.customer.payment || 'N/A') + '</p>';
   if (payload.customer.upiId) html += '<p>UPI ID: ' + payload.customer.upiId + '</p>';
   if (payload.customer.payment === 'QR Code') html += '<p>Please scan the QR code on the website for payment.</p>';
   html += '<p>Order Date: ' + new Date(payload.createdAt).toLocaleString() + '</p>';
-  html += '<p>Thank you for your order! Payment confirmation will be sent after processing.</p>';
+  html += '<p>Thank you for your payment! Your order will be processed soon.</p>';
   return html;
 }
 
@@ -228,6 +228,13 @@ function sendToWhatsApp(payload) {
   if (receiptDiv && receiptContent) {
     receiptContent.innerHTML = buildReceiptHTML(payload);
     receiptDiv.style.display = 'block';
+  }
+
+  // Send payment receipt to customer if online payment
+  if (payload.customer.payment === 'UPI' || payload.customer.payment === 'QR Code') {
+    setTimeout(() => {
+      sendReceiptToCustomer(payload);
+    }, 2000); // delay to avoid multiple tabs
   }
 }
 
@@ -252,6 +259,31 @@ function buildReceiptWhatsAppText(payload) {
   lines.push('Payment Method: ' + (payload.customer.payment || 'N/A'));
   lines.push('Date: ' + new Date(payload.createdAt).toLocaleString());
   lines.push('Thank you for your payment!');
+  return encodeURIComponent(lines.join('\n'));
+}
+
+function sendReceiptToCustomer(payload) {
+  const customerPhone = payload.customer.phone.replace(/\D/g, ''); // remove non-digits
+  if (!customerPhone || customerPhone.length < 10) {
+    console.warn('Invalid customer phone number for receipt.');
+    return;
+  }
+  const text = buildPaymentReceiptText(payload);
+  const url = 'https://wa.me/91' + customerPhone + '?text=' + text; // assuming India +91
+  window.open(url, '_blank');
+}
+
+function buildPaymentReceiptText(payload) {
+  const lines = [];
+  lines.push('Payment Receipt - Sridevi Home Foods');
+  lines.push('Customer: ' + (payload.customer.name || 'N/A'));
+  lines.push('Order Details:');
+  payload.items.forEach(it => lines.push('- ' + it.name + ' — ' + it.qty + ' ' + it.unit + ' — ₹' + it.lineTotal.toFixed(0)));
+  lines.push('Total Paid: ₹' + payload.total.toFixed(0));
+  lines.push('Payment Method: ' + (payload.customer.payment || 'N/A'));
+  if (payload.customer.upiId) lines.push('UPI ID: ' + payload.customer.upiId);
+  lines.push('Date: ' + new Date(payload.createdAt).toLocaleString());
+  lines.push('Thank you for your payment! Your order will be processed soon.');
   return encodeURIComponent(lines.join('\n'));
 }
 
