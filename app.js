@@ -177,6 +177,37 @@ function saveToLocalStorage() {
   localStorage.setItem('PICKLES', JSON.stringify(PICKLES));
 }
 
+// Save menu to Firebase Realtime Database (if initialized)
+function saveMenuToFirebase() {
+  try {
+    if (typeof firebase === 'undefined' || !firebase.database) return;
+    firebase.database().ref('menu').set({ home: HOME_FOODS, pickles: PICKLES });
+  } catch (e) {
+    console.warn('Failed to save menu to Firebase', e);
+  }
+}
+
+// Watch menu in Firebase and update UI for all visitors
+function watchMenuFromFirebase() {
+  try {
+    if (typeof firebase === 'undefined' || !firebase.database) return;
+    const ref = firebase.database().ref('menu');
+    ref.on('value', (snap) => {
+      const data = snap.val();
+      if (data) {
+        HOME_FOODS = data.home || DEFAULT_HOME_FOODS;
+        PICKLES = data.pickles || DEFAULT_PICKLES;
+        // persist locally too
+        localStorage.setItem('HOME_FOODS', JSON.stringify(HOME_FOODS));
+        localStorage.setItem('PICKLES', JSON.stringify(PICKLES));
+        renderCatalog();
+      }
+    });
+  } catch (e) {
+    console.warn('Failed to watch menu from Firebase', e);
+  }
+}
+
 function resetToDefaults() {
   if (confirm('Reset all products to default menu? This cannot be undone.')) {
     HOME_FOODS = JSON.parse(JSON.stringify(DEFAULT_HOME_FOODS));
@@ -185,6 +216,7 @@ function resetToDefaults() {
     localStorage.removeItem('PICKLES');
     renderCatalog();
     renderAdminPanel();
+    try { saveMenuToFirebase(); } catch(e) {}
     alert('Menu reset to defaults');
   }
 }
@@ -201,7 +233,7 @@ function renderAdminPanel() {
   addHomeBtn.onclick = () => {
     const newId = 'item_' + Date.now();
     HOME_FOODS.push({ id: newId, name: 'New Item', pricePerKg: 100, desc: '', image: 'images/' });
-    saveToLocalStorage();
+    saveToLocalStorage(); saveMenuToFirebase();
     renderAdminPanel();
     renderCatalog();
   };
@@ -214,7 +246,7 @@ function renderAdminPanel() {
   addPickleBtn.onclick = () => {
     const newId = 'pickle_' + Date.now();
     PICKLES.push({ id: newId, name: 'New Pickle', price: 100, kind: 'veg', image: 'images/' });
-    saveToLocalStorage();
+    saveToLocalStorage(); saveMenuToFirebase();
     renderAdminPanel();
     renderCatalog();
   };
@@ -250,14 +282,14 @@ function renderAdminPanel() {
     const imageInput = row.querySelector('.home-image');
     const deleteBtn = row.querySelector('.home-delete');
 
-    nameInput.onchange = (e) => { HOME_FOODS[idx].name = e.target.value; saveToLocalStorage(); renderCatalog(); };
-    priceInput.onchange = (e) => { HOME_FOODS[idx].pricePerKg = parseFloat(e.target.value) || 0; saveToLocalStorage(); renderCatalog(); };
-    descInput.onchange = (e) => { HOME_FOODS[idx].desc = e.target.value; saveToLocalStorage(); renderCatalog(); };
-    imageInput.onchange = (e) => { HOME_FOODS[idx].image = e.target.value; saveToLocalStorage(); renderCatalog(); };
+    nameInput.onchange = (e) => { HOME_FOODS[idx].name = e.target.value; saveToLocalStorage(); saveMenuToFirebase(); renderCatalog(); };
+    priceInput.onchange = (e) => { HOME_FOODS[idx].pricePerKg = parseFloat(e.target.value) || 0; saveToLocalStorage(); saveMenuToFirebase(); renderCatalog(); };
+    descInput.onchange = (e) => { HOME_FOODS[idx].desc = e.target.value; saveToLocalStorage(); saveMenuToFirebase(); renderCatalog(); };
+    imageInput.onchange = (e) => { HOME_FOODS[idx].image = e.target.value; saveToLocalStorage(); saveMenuToFirebase(); renderCatalog(); };
     deleteBtn.onclick = () => {
       if (confirm('Delete "' + item.name + '"?')) {
         HOME_FOODS.splice(idx, 1);
-        saveToLocalStorage();
+        saveToLocalStorage(); saveMenuToFirebase();
         renderAdminPanel();
         renderCatalog();
       }
@@ -286,14 +318,14 @@ function renderAdminPanel() {
     const imageInput = row.querySelector('.pickle-image');
     const deleteBtn = row.querySelector('.pickle-delete');
 
-    nameInput.onchange = (e) => { PICKLES[idx].name = e.target.value; saveToLocalStorage(); renderCatalog(); };
-    priceInput.onchange = (e) => { PICKLES[idx].price = parseFloat(e.target.value) || 0; saveToLocalStorage(); renderCatalog(); };
-    kindInput.onchange = (e) => { PICKLES[idx].kind = e.target.value; saveToLocalStorage(); renderCatalog(); };
-    imageInput.onchange = (e) => { PICKLES[idx].image = e.target.value; saveToLocalStorage(); renderCatalog(); };
+    nameInput.onchange = (e) => { PICKLES[idx].name = e.target.value; saveToLocalStorage(); saveMenuToFirebase(); renderCatalog(); };
+    priceInput.onchange = (e) => { PICKLES[idx].price = parseFloat(e.target.value) || 0; saveToLocalStorage(); saveMenuToFirebase(); renderCatalog(); };
+    kindInput.onchange = (e) => { PICKLES[idx].kind = e.target.value; saveToLocalStorage(); saveMenuToFirebase(); renderCatalog(); };
+    imageInput.onchange = (e) => { PICKLES[idx].image = e.target.value; saveToLocalStorage(); saveMenuToFirebase(); renderCatalog(); };
     deleteBtn.onclick = () => {
       if (confirm('Delete "' + item.name + '"?')) {
         PICKLES.splice(idx, 1);
-        saveToLocalStorage();
+        saveToLocalStorage(); saveMenuToFirebase();
         renderAdminPanel();
         renderCatalog();
       }
@@ -306,6 +338,12 @@ function renderAdminPanel() {
 document.addEventListener('DOMContentLoaded', () => {
   renderCatalog();
   renderCart();
+  // Start listening for menu updates from Firebase (if configured)
+  try {
+    if (typeof firebase !== 'undefined' && firebase.database) {
+      watchMenuFromFirebase();
+    }
+  } catch (e) {}
   
   // Check if admin parameter exists in URL
   const params = new URLSearchParams(window.location.search);
