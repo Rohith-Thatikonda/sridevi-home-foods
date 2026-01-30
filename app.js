@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Check if admin parameter exists in URL
   const params = new URLSearchParams(window.location.search);
-  const isAdmin = params.get('admin') === 'true';
+  const isAdmin = params.get('admin') === '050697';
   
   if (isAdmin) {
     $('#toggleAdminBtn').style.display = 'inline-block';
