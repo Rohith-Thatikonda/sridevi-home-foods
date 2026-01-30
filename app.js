@@ -196,6 +196,23 @@ function buildWhatsAppText(payload) {
   return encodeURIComponent(lines.join('\n'));
 }
 
+function buildReceiptHTML(payload) {
+  let html = '<p><strong>Order Receipt</strong></p>';
+  html += '<p>Order from: ' + (payload.customer.name || 'Customer') + '</p>';
+  if (payload.customer.phone) html += '<p>Phone: ' + payload.customer.phone + '</p>';
+  if (payload.customer.address) html += '<p>Address: ' + payload.customer.address + '</p>';
+  html += '<p>Items:</p><ul>';
+  payload.items.forEach(it => html += '<li>' + it.name + ' — ' + it.qty + ' ' + it.unit + ' — ₹' + it.lineTotal.toFixed(0) + '</li>');
+  html += '</ul>';
+  html += '<p><strong>Total: ₹' + payload.total.toFixed(0) + '</strong></p>';
+  html += '<p>Payment Method: ' + (payload.customer.payment || 'N/A') + '</p>';
+  if (payload.customer.upiId) html += '<p>UPI ID: ' + payload.customer.upiId + '</p>';
+  if (payload.customer.payment === 'QR Code') html += '<p>Please scan the QR code on the website for payment.</p>';
+  html += '<p>Order Date: ' + new Date(payload.createdAt).toLocaleString() + '</p>';
+  html += '<p>Thank you for your order! Payment confirmation will be sent after processing.</p>';
+  return html;
+}
+
 function sendToWhatsApp(payload) {
   if (!WHATSAPP_NUMBER || WHATSAPP_NUMBER.length < 6) {
     alert('WhatsApp number not configured in app.js');
@@ -204,6 +221,14 @@ function sendToWhatsApp(payload) {
   const text = buildWhatsAppText(payload);
   const url = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + text;
   window.open(url, '_blank');
+
+  // Show receipt
+  const receiptDiv = $('#receipt');
+  const receiptContent = $('#receiptContent');
+  if (receiptDiv && receiptContent) {
+    receiptContent.innerHTML = buildReceiptHTML(payload);
+    receiptDiv.style.display = 'block';
+  }
 }
 
 // ===== ADMIN PANEL FUNCTIONS =====
@@ -419,6 +444,14 @@ document.addEventListener('DOMContentLoaded', () => {
         upi.style.display = 'none';
         qr.style.display = 'none';
       }
+    });
+  }
+
+  // Close receipt button
+  const closeReceipt = $('#closeReceipt');
+  if (closeReceipt) {
+    closeReceipt.addEventListener('click', () => {
+      $('#receipt').style.display = 'none';
     });
   }
   // Check if admin parameter exists in URL
