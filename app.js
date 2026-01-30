@@ -170,7 +170,8 @@ function buildOrderPayload(form) {
       name: form.name.value.trim(),
       phone: form.phone.value.trim(),
       address: form.address.value.trim(),
-      payment: form.payment.value
+      payment: form.payment.value,
+      upiId: form.upiId ? form.upiId.value.trim() : null
     },
     items: cart.map(i => ({ id: i.id, name: i.name, qty: i.qty, unit: i.unit, unitPrice: i.unitPrice, lineTotal: i.qty * i.unitPrice })),
     total: cart.reduce((s,i)=>s + i.qty * i.unitPrice, 0),
@@ -190,6 +191,8 @@ function buildWhatsAppText(payload) {
   lines.push('');
   lines.push('Total: ₹' + payload.total.toFixed(0));
   lines.push('Payment: ' + (payload.customer.payment || 'N/A'));
+  if (payload.customer.upiId) lines.push('UPI ID: ' + payload.customer.upiId);
+  if (payload.customer.payment === 'QR Code') lines.push('Please scan the QR code provided on the website for payment.');
   return encodeURIComponent(lines.join('\n'));
 }
 
@@ -395,6 +398,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   } catch (e) {}
   
+  // Payment method details toggle
+  const paymentSelect = $('#paymentSelect');
+  if (paymentSelect) {
+    paymentSelect.addEventListener('change', () => {
+      const details = $('#paymentDetails');
+      const upi = $('#upiDetails');
+      const qr = $('#qrDetails');
+      const val = paymentSelect.value;
+      if (val === 'UPI') {
+        details.style.display = 'block';
+        upi.style.display = 'block';
+        qr.style.display = 'none';
+      } else if (val === 'QR Code') {
+        details.style.display = 'block';
+        upi.style.display = 'none';
+        qr.style.display = 'block';
+      } else {
+        details.style.display = 'none';
+        upi.style.display = 'none';
+        qr.style.display = 'none';
+      }
+    });
+  }
   // Check if admin parameter exists in URL
   const params = new URLSearchParams(window.location.search);
   const isAdmin = params.get('admin') === '050697';

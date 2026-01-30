@@ -107,10 +107,23 @@
             </div>
             <div class="mb-3">
               <label class="form-label mb-1">Payment</label>
-              <select name="payment" class="form-select">
+              <select name="payment" class="form-select" id="paymentSelect">
                 <option>Cash on delivery</option>
-                <option>Online</option>
+                <option>UPI</option>
+                <option>QR Code</option>
               </select>
+            </div>
+            <div id="paymentDetails" class="mb-3" style="display: none;">
+              <div id="upiDetails" style="display: none;">
+                <label class="form-label">UPI ID</label>
+                <input name="upiId" type="text" class="form-control" placeholder="merchant@upi" value="merchant@upi">
+                <small class="form-text text-muted">Pay using UPI app to this ID</small>
+              </div>
+              <div id="qrDetails" style="display: none;">
+                <label class="form-label">Scan QR Code to Pay</label>
+                <img src="images/qr-code.png" alt="Payment QR Code" class="img-fluid" style="max-width: 200px;">
+                <small class="form-text text-muted">Scan with any UPI app</small>
+              </div>
             </div>
 
             <div class="d-grid gap-2">
