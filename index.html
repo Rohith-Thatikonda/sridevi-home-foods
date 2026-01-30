@@ -42,7 +42,26 @@
     <div class="card-body">
       <h5 class="card-title">Admin Panel - Manage Menu</h5>
       <p class="text-muted small">Edit products, prices, and descriptions. Changes are saved automatically to your browser.</p>
-      <div id="adminProductList"></div>
+        <div id="adminAuth" class="mb-3">
+          <div id="adminSignedIn" style="display:none;">
+            Signed in as <span id="adminEmailDisplay"></span>
+            <button id="adminSignOutBtn" class="btn btn-sm btn-outline-secondary ms-2">Sign out</button>
+          </div>
+          <div id="adminSignInForm">
+            <div class="row g-2 align-items-center">
+              <div class="col-auto">
+                <input id="adminEmail" type="email" class="form-control form-control-sm" placeholder="admin email">
+              </div>
+              <div class="col-auto">
+                <input id="adminPassword" type="password" class="form-control form-control-sm" placeholder="password">
+              </div>
+              <div class="col-auto">
+                <button id="adminSignInBtn" class="btn btn-sm btn-primary">Sign in</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="adminProductList"></div>
     </div>
   </div>
 
@@ -115,6 +134,7 @@
 <!-- Firebase (compat) - paste your Firebase web config into the firebaseConfig object below -->
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
 <script>
   // Replace the placeholder values with your Firebase project's config
   const firebaseConfig = {

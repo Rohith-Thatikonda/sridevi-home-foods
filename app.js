@@ -181,6 +181,11 @@ function saveToLocalStorage() {
 function saveMenuToFirebase() {
   try {
     if (typeof firebase === 'undefined' || !firebase.database) return;
+    // only write if signed in
+    if (!firebase.auth || !firebase.auth().currentUser) {
+      console.warn('Not signed in — skipping Firebase save');
+      return;
+    }
     firebase.database().ref('menu').set({ home: HOME_FOODS, pickles: PICKLES });
   } catch (e) {
     console.warn('Failed to save menu to Firebase', e);
@@ -282,6 +287,12 @@ function renderAdminPanel() {
     const imageInput = row.querySelector('.home-image');
     const deleteBtn = row.querySelector('.home-delete');
 
+    // disable inputs if not signed in
+    const signedIn = (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+    if (!signedIn) {
+      nameInput.disabled = true; priceInput.disabled = true; descInput.disabled = true; imageInput.disabled = true; deleteBtn.disabled = true;
+    }
+
     nameInput.onchange = (e) => { HOME_FOODS[idx].name = e.target.value; saveToLocalStorage(); saveMenuToFirebase(); renderCatalog(); };
     priceInput.onchange = (e) => { HOME_FOODS[idx].pricePerKg = parseFloat(e.target.value) || 0; saveToLocalStorage(); saveMenuToFirebase(); renderCatalog(); };
     descInput.onchange = (e) => { HOME_FOODS[idx].desc = e.target.value; saveToLocalStorage(); saveMenuToFirebase(); renderCatalog(); };
@@ -317,6 +328,12 @@ function renderAdminPanel() {
     const kindInput = row.querySelector('.pickle-kind');
     const imageInput = row.querySelector('.pickle-image');
     const deleteBtn = row.querySelector('.pickle-delete');
+
+    // disable inputs if not signed in
+    const signedInP = (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+    if (!signedInP) {
+      nameInput.disabled = true; priceInput.disabled = true; kindInput.disabled = true; imageInput.disabled = true; deleteBtn.disabled = true;
+    }
 
     nameInput.onchange = (e) => { PICKLES[idx].name = e.target.value; saveToLocalStorage(); saveMenuToFirebase(); renderCatalog(); };
     priceInput.onchange = (e) => { PICKLES[idx].price = parseFloat(e.target.value) || 0; saveToLocalStorage(); saveMenuToFirebase(); renderCatalog(); };
@@ -375,6 +392,39 @@ document.addEventListener('DOMContentLoaded', () => {
       $('#toggleAdminBtn').textContent = 'Show Admin Panel';
     }
   });
+
+  // Firebase Auth: sign-in UI and state handling (if SDK loaded)
+  try {
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          const signed = $('#adminSignedIn');
+          const form = $('#adminSignInForm');
+          if (signed) signed.style.display = 'inline-block';
+          if (form) form.style.display = 'none';
+          const disp = $('#adminEmailDisplay'); if (disp) disp.textContent = user.email;
+          const out = $('#adminSignOutBtn'); if (out) out.onclick = () => firebase.auth().signOut();
+        } else {
+          const signed = $('#adminSignedIn');
+          const form = $('#adminSignInForm');
+          if (signed) signed.style.display = 'none';
+          if (form) form.style.display = 'block';
+          const disp = $('#adminEmailDisplay'); if (disp) disp.textContent = '';
+        }
+        if (adminInitialized) renderAdminPanel();
+      });
+
+      const signInBtn = $('#adminSignInBtn');
+      if (signInBtn) {
+        signInBtn.addEventListener('click', () => {
+          const em = ($('#adminEmail').value || '').trim();
+          const pw = $('#adminPassword').value || '';
+          if (!em || !pw) { alert('Enter email and password'); return; }
+          firebase.auth().signInWithEmailAndPassword(em, pw).catch(err => alert('Sign-in failed: ' + err.message));
+        });
+      }
+    }
+  } catch (e) { console.warn('Auth init failed', e); }
 
   $('#sendWhatsApp').addEventListener('click', () => {
     const form = $('#orderForm');
