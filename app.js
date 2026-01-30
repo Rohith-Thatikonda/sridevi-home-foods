@@ -1,19 +1,23 @@
 // YOUR WHATSAPP NUMBER (India: 91 + number, no +). Set to your number:
 const WHATSAPP_NUMBER = '919866406807';
 
-const HOME_FOODS = [
+const DEFAULT_HOME_FOODS = [
   { id: 'rice', name: 'Sona Masoori Rice', pricePerKg: 320, desc: 'Aromatic everyday rice', image: 'images/rice.jpg' },
-  { id: 'mixveg', name: 'Mixed Veg (home)', pricePerKg: 350, desc: 'Seasonal vegetables, home-style', image: 'images/mixveg.jpg' }
-  ,{ id: 'sakinalu', name: 'Sakinalu', pricePerKg: 300, desc: 'Crispy sesame rice snack, traditional', image: 'images/sakinalu.jpg' }
-  ,{ id: 'madugulu', name: 'Madugulu', pricePerKg: 300, desc: 'Steamed rice dumplings, soft and fluffy', image: 'images/madugulu.jpg' }
-  ,{ id: 'laddus', name: 'Laddus', pricePerKg: 400, desc: 'Sweet gram flour laddus, handmade', image: 'images/laddus.jpg' }
+  { id: 'mixveg', name: 'Mixed Veg (home)', pricePerKg: 350, desc: 'Seasonal vegetables, home-style', image: 'images/mixveg.jpg' },
+  { id: 'sakinalu', name: 'Sakinalu', pricePerKg: 300, desc: 'Crispy sesame rice snack, traditional', image: 'images/sakinalu.jpg' },
+  { id: 'madugulu', name: 'Madugulu', pricePerKg: 300, desc: 'Steamed rice dumplings, soft and fluffy', image: 'images/madugulu.jpg' },
+  { id: 'laddus', name: 'Laddus', pricePerKg: 400, desc: 'Sweet gram flour laddus, handmade', image: 'images/laddus.jpg' }
 ];
 
-const PICKLES = [
+const DEFAULT_PICKLES = [
   { id: 'mango', name: 'Mango Pickle (veg)', price: 150, kind: 'veg', image: 'images/mango.jpg' },
   { id: 'lime', name: 'Lime Pickle (veg)', price: 120, kind: 'veg', image: 'images/lime.jpg' },
   { id: 'chicken', name: 'Chicken Pickle (non-veg)', price: 220, kind: 'non-veg', image: 'images/chicken.jpeg' }
 ];
+
+// Load from localStorage, fallback to defaults
+let HOME_FOODS = JSON.parse(localStorage.getItem('HOME_FOODS')) || DEFAULT_HOME_FOODS;
+let PICKLES = JSON.parse(localStorage.getItem('PICKLES')) || DEFAULT_PICKLES;
 
 let cart = [];
 
@@ -35,7 +39,6 @@ function createProductCard(item, type) {
   const _fallbackSVG = '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100"><rect width="100%" height="100%" fill="#f8f9fa"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#495057" font-size="14">Image</text></svg>';
   img.onerror = () => {
     try {
-      // If the file was requested as .jpg, try the same name with .svg next
       if (img.src && img.src.match(/\.jpg(\?|$)/i)) {
         img.src = img.src.replace(/\.jpg(\?|$)/i, '.svg$1');
         return;
@@ -45,13 +48,13 @@ function createProductCard(item, type) {
     img.onerror = null;
   };
   const info = document.createElement('div');
-  info.innerHTML = `<h6 class="mb-1">${item.name}</h6><div class="text-muted small">${item.desc || (item.kind || '')}</div>`;
+  info.innerHTML = '<h6 class="mb-1">' + item.name + '</h6><div class="text-muted small">' + (item.desc || (item.kind || '')) + '</div>';
   left.appendChild(img);
   left.appendChild(info);
 
   const right = document.createElement('div');
-  const priceText = type === 'home' ? `₹${item.pricePerKg}/kg` : `₹${item.price} / jar`;
-  right.innerHTML = `<div class="price mb-2">${priceText}</div>`;
+  const priceText = type === 'home' ? '₹' + item.pricePerKg + '/kg' : '₹' + item.price + ' / jar';
+  right.innerHTML = '<div class="price mb-2">' + priceText + '</div>';
   const controls = document.createElement('div');
   controls.className = 'd-flex align-items-center';
   const qty = document.createElement('input');
@@ -64,7 +67,7 @@ function createProductCard(item, type) {
   btn.textContent = 'Add';
   btn.onclick = () => {
     const q = type === 'home' ? parseFloat(qty.value || 1) : parseInt(qty.value || 1);
-    addToCart({ ...item }, type, q);
+    addToCart(Object.assign({}, item), type, q);
   };
   controls.appendChild(qty);
   controls.appendChild(btn);
@@ -112,9 +115,9 @@ function renderCart() {
   cart.forEach((c, idx) => {
     const row = document.createElement('div');
     row.className = 'd-flex justify-content-between align-items-center mb-2';
-    row.innerHTML = `<div><small class="text-muted">${c.unit.toUpperCase()}</small><div>${c.name} — ${c.qty} ${c.unit}</div></div>`;
+    row.innerHTML = '<div><small class="text-muted">' + c.unit.toUpperCase() + '</small><div>' + c.name + ' — ' + c.qty + ' ' + c.unit + '</div></div>';
     const right = document.createElement('div');
-    right.innerHTML = `₹${(c.qty * c.unitPrice).toFixed(0)} <button class="btn btn-link btn-sm text-danger">Remove</button>`;
+    right.innerHTML = '₹' + (c.qty * c.unitPrice).toFixed(0) + ' <button class="btn btn-link btn-sm text-danger">Remove</button>';
     right.querySelector('button').onclick = () => {
       cart.splice(idx, 1);
       renderCart();
@@ -123,7 +126,7 @@ function renderCart() {
     area.appendChild(row);
     total += c.qty * c.unitPrice;
   });
-  $('#cartTotal').textContent = `₹${total.toFixed(0)}`;
+  $('#cartTotal').textContent = '₹' + total.toFixed(0);
   $('#cartCount').textContent = String(cart.length);
   $('#sendWhatsApp').disabled = false;
 }
@@ -145,15 +148,15 @@ function buildOrderPayload(form) {
 
 function buildWhatsAppText(payload) {
   const lines = [];
-  lines.push(`New order from ${payload.customer.name || 'Customer'}`);
-  if (payload.customer.phone) lines.push(`Phone: ${payload.customer.phone}`);
-  if (payload.customer.address) lines.push(`Address: ${payload.customer.address}`);
+  lines.push('New order from ' + (payload.customer.name || 'Customer'));
+  if (payload.customer.phone) lines.push('Phone: ' + payload.customer.phone);
+  if (payload.customer.address) lines.push('Address: ' + payload.customer.address);
   lines.push('');
   lines.push('Items:');
-  payload.items.forEach(it => lines.push(`- ${it.name} — ${it.qty} ${it.unit} — ₹${it.lineTotal.toFixed(0)}`));
+  payload.items.forEach(it => lines.push('- ' + it.name + ' — ' + it.qty + ' ' + it.unit + ' — ₹' + it.lineTotal.toFixed(0)));
   lines.push('');
-  lines.push(`Total: ₹${payload.total.toFixed(0)}`);
-  lines.push(`Payment: ${payload.customer.payment || 'N/A'}`);
+  lines.push('Total: ₹' + payload.total.toFixed(0));
+  lines.push('Payment: ' + (payload.customer.payment || 'N/A'));
   return encodeURIComponent(lines.join('\n'));
 }
 
@@ -163,15 +166,169 @@ function sendToWhatsApp(payload) {
     return;
   }
   const text = buildWhatsAppText(payload);
-  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`;
+  const url = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + text;
   window.open(url, '_blank');
 }
 
-// `downloadJSON` removed — JSON download UI was removed.
+// ===== ADMIN PANEL FUNCTIONS =====
+
+function saveToLocalStorage() {
+  localStorage.setItem('HOME_FOODS', JSON.stringify(HOME_FOODS));
+  localStorage.setItem('PICKLES', JSON.stringify(PICKLES));
+}
+
+function resetToDefaults() {
+  if (confirm('Reset all products to default menu? This cannot be undone.')) {
+    HOME_FOODS = JSON.parse(JSON.stringify(DEFAULT_HOME_FOODS));
+    PICKLES = JSON.parse(JSON.stringify(DEFAULT_PICKLES));
+    localStorage.removeItem('HOME_FOODS');
+    localStorage.removeItem('PICKLES');
+    renderCatalog();
+    renderAdminPanel();
+    alert('Menu reset to defaults');
+  }
+}
+
+function renderAdminPanel() {
+  const adminList = $('#adminProductList');
+  if (!adminList) return;
+  adminList.innerHTML = '';
+
+  const addHomeBtn = document.createElement('button');
+  addHomeBtn.className = 'btn btn-sm btn-outline-primary mb-3';
+  addHomeBtn.textContent = '+ Add Home Food';
+  addHomeBtn.type = 'button';
+  addHomeBtn.onclick = () => {
+    const newId = 'item_' + Date.now();
+    HOME_FOODS.push({ id: newId, name: 'New Item', pricePerKg: 100, desc: '', image: 'images/' });
+    saveToLocalStorage();
+    renderAdminPanel();
+    renderCatalog();
+  };
+  adminList.appendChild(addHomeBtn);
+
+  const addPickleBtn = document.createElement('button');
+  addPickleBtn.className = 'btn btn-sm btn-outline-success mb-3 ms-2';
+  addPickleBtn.textContent = '+ Add Pickle';
+  addPickleBtn.type = 'button';
+  addPickleBtn.onclick = () => {
+    const newId = 'pickle_' + Date.now();
+    PICKLES.push({ id: newId, name: 'New Pickle', price: 100, kind: 'veg', image: 'images/' });
+    saveToLocalStorage();
+    renderAdminPanel();
+    renderCatalog();
+  };
+  adminList.appendChild(addPickleBtn);
+
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'btn btn-sm btn-outline-danger mb-3 ms-2';
+  resetBtn.textContent = 'Reset to Defaults';
+  resetBtn.type = 'button';
+  resetBtn.onclick = resetToDefaults;
+  adminList.appendChild(resetBtn);
+
+  adminList.appendChild(document.createElement('hr'));
+
+  const homeTitle = document.createElement('h6');
+  homeTitle.textContent = 'Home Foods';
+  homeTitle.className = 'mt-4 mb-3';
+  adminList.appendChild(homeTitle);
+
+  HOME_FOODS.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.className = 'admin-product-row mb-3 p-3 border rounded';
+    
+    const nameVal = (item.name || '').replace(/"/g, '&quot;');
+    const descVal = (item.desc || '').replace(/"/g, '&quot;');
+    const imgVal = (item.image || '').replace(/"/g, '&quot;');
+    
+    row.innerHTML = '<div class="row g-2"><div class="col-md-3"><label class="form-label form-label-sm">Name</label><input type="text" class="form-control form-control-sm home-name" value="' + nameVal + '"></div><div class="col-md-2"><label class="form-label form-label-sm">Price/kg</label><input type="number" class="form-control form-control-sm home-price" value="' + item.pricePerKg + '"></div><div class="col-md-3"><label class="form-label form-label-sm">Description</label><input type="text" class="form-control form-control-sm home-desc" value="' + descVal + '"></div><div class="col-md-2"><label class="form-label form-label-sm">Image Path</label><input type="text" class="form-control form-control-sm home-image" value="' + imgVal + '"></div><div class="col-md-2 d-flex align-items-end"><button class="btn btn-sm btn-danger home-delete" type="button">Delete</button></div></div>';
+    
+    const nameInput = row.querySelector('.home-name');
+    const priceInput = row.querySelector('.home-price');
+    const descInput = row.querySelector('.home-desc');
+    const imageInput = row.querySelector('.home-image');
+    const deleteBtn = row.querySelector('.home-delete');
+
+    nameInput.onchange = (e) => { HOME_FOODS[idx].name = e.target.value; saveToLocalStorage(); renderCatalog(); };
+    priceInput.onchange = (e) => { HOME_FOODS[idx].pricePerKg = parseFloat(e.target.value) || 0; saveToLocalStorage(); renderCatalog(); };
+    descInput.onchange = (e) => { HOME_FOODS[idx].desc = e.target.value; saveToLocalStorage(); renderCatalog(); };
+    imageInput.onchange = (e) => { HOME_FOODS[idx].image = e.target.value; saveToLocalStorage(); renderCatalog(); };
+    deleteBtn.onclick = () => {
+      if (confirm('Delete "' + item.name + '"?')) {
+        HOME_FOODS.splice(idx, 1);
+        saveToLocalStorage();
+        renderAdminPanel();
+        renderCatalog();
+      }
+    };
+
+    adminList.appendChild(row);
+  });
+
+  const pickleTitle = document.createElement('h6');
+  pickleTitle.textContent = 'Pickles';
+  pickleTitle.className = 'mt-4 mb-3';
+  adminList.appendChild(pickleTitle);
+
+  PICKLES.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.className = 'admin-product-row mb-3 p-3 border rounded';
+    
+    const nameVal = (item.name || '').replace(/"/g, '&quot;');
+    const imgVal = (item.image || '').replace(/"/g, '&quot;');
+    
+    row.innerHTML = '<div class="row g-2"><div class="col-md-2"><label class="form-label form-label-sm">Name</label><input type="text" class="form-control form-control-sm pickle-name" value="' + nameVal + '"></div><div class="col-md-2"><label class="form-label form-label-sm">Price</label><input type="number" class="form-control form-control-sm pickle-price" value="' + item.price + '"></div><div class="col-md-2"><label class="form-label form-label-sm">Kind</label><select class="form-select form-select-sm pickle-kind"><option value="veg" ' + (item.kind === 'veg' ? 'selected' : '') + '>Veg</option><option value="non-veg" ' + (item.kind === 'non-veg' ? 'selected' : '') + '>Non-veg</option></select></div><div class="col-md-2"><label class="form-label form-label-sm">Image Path</label><input type="text" class="form-control form-control-sm pickle-image" value="' + imgVal + '"></div><div class="col-md-2 d-flex align-items-end"><button class="btn btn-sm btn-danger pickle-delete" type="button">Delete</button></div></div>';
+    
+    const nameInput = row.querySelector('.pickle-name');
+    const priceInput = row.querySelector('.pickle-price');
+    const kindInput = row.querySelector('.pickle-kind');
+    const imageInput = row.querySelector('.pickle-image');
+    const deleteBtn = row.querySelector('.pickle-delete');
+
+    nameInput.onchange = (e) => { PICKLES[idx].name = e.target.value; saveToLocalStorage(); renderCatalog(); };
+    priceInput.onchange = (e) => { PICKLES[idx].price = parseFloat(e.target.value) || 0; saveToLocalStorage(); renderCatalog(); };
+    kindInput.onchange = (e) => { PICKLES[idx].kind = e.target.value; saveToLocalStorage(); renderCatalog(); };
+    imageInput.onchange = (e) => { PICKLES[idx].image = e.target.value; saveToLocalStorage(); renderCatalog(); };
+    deleteBtn.onclick = () => {
+      if (confirm('Delete "' + item.name + '"?')) {
+        PICKLES.splice(idx, 1);
+        saveToLocalStorage();
+        renderAdminPanel();
+        renderCatalog();
+      }
+    };
+
+    adminList.appendChild(row);
+  });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   renderCatalog();
   renderCart();
+  
+  let adminInitialized = false;
+  
+  $('#toggleAdminBtn').addEventListener('click', () => {
+    if (!adminInitialized) {
+      renderAdminPanel();
+      adminInitialized = true;
+    }
+    
+    const panel = $('#adminPanel');
+    if (!panel) {
+      alert('Admin panel not found in DOM');
+      return;
+    }
+    const isHidden = panel.style.display === 'none' || panel.style.display === '';
+    if (isHidden) {
+      panel.style.display = 'block';
+      $('#toggleAdminBtn').textContent = 'Hide Admin Panel';
+    } else {
+      panel.style.display = 'none';
+      $('#toggleAdminBtn').textContent = 'Show Admin Panel';
+    }
+  });
 
   $('#sendWhatsApp').addEventListener('click', () => {
     const form = $('#orderForm');
@@ -183,8 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const payload = buildOrderPayload(form);
     sendToWhatsApp(payload);
   });
-
-  // Download JSON button removed from UI.
 
   $('#openCartBtn').addEventListener('click', () => {
     window.scrollTo({ top: document.querySelector('main').offsetTop, behavior: 'smooth' });
