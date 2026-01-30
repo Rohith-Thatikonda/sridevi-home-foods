@@ -62,6 +62,34 @@
           </div>
         </div>
         <div id="adminProductList"></div>
+
+        <hr class="my-4">
+        <h6>Send Payment Receipt</h6>
+        <p class="text-muted small">Send a payment confirmation receipt to a customer after payment is received.</p>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <input id="receiptName" type="text" class="form-control form-control-sm" placeholder="Customer Name">
+          </div>
+          <div class="col-md-6">
+            <input id="receiptPhone" type="text" class="form-control form-control-sm" placeholder="Customer Phone">
+          </div>
+          <div class="col-12">
+            <textarea id="receiptDetails" class="form-control form-control-sm" rows="3" placeholder="Order details, e.g., 2kg Rice, 1 Mango Pickle"></textarea>
+          </div>
+          <div class="col-md-6">
+            <input id="receiptTotal" type="number" class="form-control form-control-sm" placeholder="Total Amount (₹)">
+          </div>
+          <div class="col-md-6">
+            <select id="receiptPayment" class="form-select form-select-sm">
+              <option>Cash on delivery</option>
+              <option>UPI</option>
+              <option>QR Code</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <button id="sendReceiptBtn" class="btn btn-sm btn-success">Send Receipt via WhatsApp</button>
+          </div>
+        </div>
     </div>
   </div>
 

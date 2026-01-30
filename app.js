@@ -231,6 +231,30 @@ function sendToWhatsApp(payload) {
   }
 }
 
+function sendReceiptToWhatsApp(payload) {
+  const customerPhone = payload.customer.phone.replace(/\D/g, ''); // remove non-digits
+  if (!customerPhone || customerPhone.length < 10) {
+    alert('Invalid customer phone number.');
+    return;
+  }
+  const text = buildReceiptWhatsAppText(payload);
+  const url = 'https://wa.me/91' + customerPhone + '?text=' + text; // assuming India +91
+  window.open(url, '_blank');
+  alert('Receipt sent to customer via WhatsApp.');
+}
+
+function buildReceiptWhatsAppText(payload) {
+  const lines = [];
+  lines.push('Payment Receipt');
+  lines.push('Customer: ' + (payload.customer.name || 'N/A'));
+  lines.push('Order Details: ' + payload.details);
+  lines.push('Total Paid: ₹' + payload.total.toFixed(0));
+  lines.push('Payment Method: ' + (payload.customer.payment || 'N/A'));
+  lines.push('Date: ' + new Date(payload.createdAt).toLocaleString());
+  lines.push('Thank you for your payment!');
+  return encodeURIComponent(lines.join('\n'));
+}
+
 // ===== ADMIN PANEL FUNCTIONS =====
 
 function saveToLocalStorage() {
@@ -506,13 +530,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (adminInitialized) renderAdminPanel();
       });
 
-      const signInBtn = $('#adminSignInBtn');
-      if (signInBtn) {
-        signInBtn.addEventListener('click', () => {
-          const em = ($('#adminEmail').value || '').trim();
-          const pw = $('#adminPassword').value || '';
-          if (!em || !pw) { alert('Enter email and password'); return; }
-          firebase.auth().signInWithEmailAndPassword(em, pw).catch(err => alert('Sign-in failed: ' + err.message));
+      const sendReceiptBtn = $('#sendReceiptBtn');
+      if (sendReceiptBtn) {
+        sendReceiptBtn.addEventListener('click', () => {
+          const name = ($('#receiptName').value || '').trim();
+          const phone = ($('#receiptPhone').value || '').trim();
+          const details = ($('#receiptDetails').value || '').trim();
+          const total = parseFloat($('#receiptTotal').value || 0);
+          const payment = $('#receiptPayment').value;
+          if (!name || !phone || !details || total <= 0) {
+            alert('Please fill all fields with valid data.');
+            return;
+          }
+          const receiptPayload = {
+            customer: { name, phone, payment },
+            items: [{ name: 'Order Items', qty: 1, unit: '', lineTotal: total }],
+            total,
+            details,
+            createdAt: new Date().toISOString()
+          };
+          sendReceiptToWhatsApp(receiptPayload);
         });
       }
     }
