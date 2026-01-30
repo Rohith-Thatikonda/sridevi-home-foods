@@ -1,10 +1,6 @@
 {
   "version": 2,
   "public": true,
-  "rewrites": [
-    { "source": "/", "destination": "/index.html" },
-    { "source": "/admin", "destination": "/admin.html" }
-  ],
   "cleanUrls": true,
   "trailingSlash": false
 }
