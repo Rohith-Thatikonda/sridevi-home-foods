@@ -469,10 +469,93 @@ function renderAdminPanel() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// Admin Panel Logic (admin.html only)
+function renderAdminProductList() {
+  const adminProductList = document.getElementById("adminProductList");
+  adminProductList.innerHTML = '';
+  const allProducts = [...HOME_FOODS.map((p, i) => ({...p, type: 'home', idx: i})), ...PICKLES.map((p, i) => ({...p, type: 'pickle', idx: i + HOME_FOODS.length}))];
+  allProducts.forEach((product) => {
+    const row = document.createElement('div');
+    row.className = 'admin-product-row p-2 mb-2 border rounded';
+    row.innerHTML = `
+      <div class="row g-2 align-items-center">
+        <div class="col-md-3">
+          <input type="text" class="form-control form-control-sm" value="${product.name}" data-idx="${product.idx}" data-type="${product.type}" data-field="name">
+        </div>
+        <div class="col-md-2">
+          <input type="number" class="form-control form-control-sm" value="${product.type === 'home' ? product.pricePerKg : product.price}" data-idx="${product.idx}" data-type="${product.type}" data-field="price">
+        </div>
+        <div class="col-md-3">
+          <input type="text" class="form-control form-control-sm" value="${product.desc || ''}" data-idx="${product.idx}" data-type="${product.type}" data-field="desc">
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-sm btn-success saveProductBtn" data-idx="${product.idx}" data-type="${product.type}">Save</button>
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-sm btn-danger deleteProductBtn" data-idx="${product.idx}" data-type="${product.type}">Delete</button>
+        </div>
+      </div>
+    `;
+    adminProductList.appendChild(row);
+  });
+}
+
+function saveProduct(idx, type) {
+  const name = document.querySelector(`input[data-idx='${idx}'][data-type='${type}'][data-field='name']`).value;
+  const price = document.querySelector(`input[data-idx='${idx}'][data-type='${type}'][data-field='price']`).value;
+  const desc = document.querySelector(`input[data-idx='${idx}'][data-type='${type}'][data-field='desc']`).value;
+  if (type === 'home') {
+    HOME_FOODS[idx].name = name;
+    HOME_FOODS[idx].pricePerKg = Number(price);
+    HOME_FOODS[idx].desc = desc;
+  } else {
+    const pickleIdx = idx - HOME_FOODS.length;
+    PICKLES[pickleIdx].name = name;
+    PICKLES[pickleIdx].price = Number(price);
+    PICKLES[pickleIdx].desc = desc;
+  }
+  saveMenuToLocalStorage();
+  renderAdminProductList();
+}
+
+function deleteProduct(idx, type) {
+  if (type === 'home') {
+    HOME_FOODS.splice(idx, 1);
+  } else {
+    const pickleIdx = idx - HOME_FOODS.length;
+    PICKLES.splice(pickleIdx, 1);
+  }
+  saveMenuToLocalStorage();
+  renderAdminProductList();
+}
+
+function addProduct() {
+  // Default new product
+  HOME_FOODS.push({ id: 'new' + Date.now(), name: 'New Food', pricePerKg: 300, desc: '' });
+  saveMenuToLocalStorage();
+  renderAdminProductList();
+}
+
+function saveMenuToLocalStorage() {
+  localStorage.setItem('HOME_FOODS', JSON.stringify(HOME_FOODS));
+  localStorage.setItem('PICKLES', JSON.stringify(PICKLES));
+}
+
+function loadMenuFromLocalStorage() {
+  const homeFoods = localStorage.getItem('HOME_FOODS');
+  const pickles = localStorage.getItem('PICKLES');
+  if (homeFoods) {
+    try { HOME_FOODS = JSON.parse(homeFoods); } catch {}
+  }
+  if (pickles) {
+    try { PICKLES = JSON.parse(pickles); } catch {}
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
   renderCatalog();
   renderCart();
-  // Start listening for menu updates from Firebase (if configured)
+  // Start watching menu updates from Firebase (if configured)
   try {
     if (typeof firebase !== 'undefined' && firebase.database) {
       watchMenuFromFirebase();
@@ -605,4 +688,44 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#whatsappGuideBtn').addEventListener('click', () => {
     alert('WhatsApp will open in a new tab (WhatsApp Web) or the mobile app; you must press SEND to complete the message.');
   });
+
+  // Admin panel logic (admin.html only)
+  if (location.pathname.endsWith('admin.html')) {
+    loadMenuFromLocalStorage();
+    renderAdminProductList();
+    const addBtn = document.getElementById("addProductBtn");
+    if (addBtn) addBtn.onclick = addProduct;
+    document.getElementById("adminProductList").addEventListener('click', function(e) {
+      if (e.target.classList.contains('saveProductBtn')) {
+        const idx = Number(e.target.dataset.idx);
+        const type = e.target.dataset.type;
+        saveProduct(idx, type);
+      }
+      if (e.target.classList.contains('deleteProductBtn')) {
+        const idx = Number(e.target.dataset.idx);
+        const type = e.target.dataset.type;
+        deleteProduct(idx, type);
+      }
+    });
+
+    // Admin Sign In Button (admin.html only)
+    const signInBtn = document.getElementById('adminSignInBtn');
+    if (signInBtn && typeof firebase !== 'undefined' && firebase.auth) {
+      signInBtn.onclick = function() {
+        const email = document.getElementById('adminEmail').value.trim();
+        const password = document.getElementById('adminPassword').value;
+        if (!email || !password) {
+          alert('Please enter both email and password.');
+          return;
+        }
+        firebase.auth().signInWithEmailAndPassword(email, password)
+          .then(() => {
+            // Success: UI will update via onAuthStateChanged
+          })
+          .catch(err => {
+            alert('Sign in failed: ' + (err.message || err));
+          });
+      };
+    }
+  }
 });
